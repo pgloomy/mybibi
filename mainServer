@@ -1,0 +1,137 @@
+import java.io.BufferedOutputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Properties;
+
+import javax.mail.Flags;
+import javax.mail.Folder;
+import javax.mail.Message;
+import javax.mail.NoSuchProviderException;
+import javax.mail.Session;
+import javax.mail.Store;
+import javax.mail.URLName;
+import javax.mail.internet.MimeMessage;
+
+import mail.ReciveMail;
+
+public class mainServer {
+
+  /**
+	 * @param args
+	 */
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+		mainServer ser=new mainServer();
+/*		Runtime run=Runtime.getRuntime();
+		try {
+			run.exec("shutdown -r");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}*/
+		String str="";
+		boolean bool=true;
+		Runtime run=Runtime.getRuntime();
+		Properties props = new Properties();
+        props.setProperty("mail.smtp.host", "smtp.163.com");
+        props.setProperty("mail.smtp.auth", "true");
+        Session session = Session.getDefaultInstance(props,null);
+        URLName urlname = new URLName("pop3","pop.163.com",110,null,"guyangxiaob@163.com","sssrisctd");
+        Date nowtime;
+        while(true)
+	    {
+	        nowtime=new Date();
+	        SimpleDateFormat dft= new SimpleDateFormat("yyyy-MM-dd");
+			Calendar da=Calendar.getInstance();
+			da.setTime(nowtime);
+			da.get(Calendar.MINUTE);
+	        if(da.get(Calendar.MINUTE)%5==0 && bool)
+	        {
+		        Store store;
+		        bool=false;
+				try {
+					store = session.getStore(urlname);
+			        store.connect();
+			        Folder folder = store.getFolder("INBOX");
+			        folder.open(Folder.READ_WRITE);
+			        Message msgs[] = folder.getMessages();
+			        int count = msgs.length;
+			        System.out.println("Message Count:"+count);
+			        ser.logfile(da,"我还活着呢，发现新邮件"+count+"封！");
+			        ReciveMail rm = null;
+			        for(int i=0;i<count;i++){
+			            rm = new ReciveMail((MimeMessage) msgs[i]);
+		//	            rm.recive(msgs[i],i);
+			            str=rm.getSubject();
+			            msgs[i].setFlag(Flags.Flag.DELETED, true);
+			            msgs[i].isSet(Flags.Flag.DELETED);
+			        }
+			        folder.close(true);
+			        if(!str.equals(""))
+			        {
+			        	ser.logfile(da,str);
+			        	run.exec(str);
+			        	run.gc();
+			        	str="";
+			        }
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					ser.logfile(da,e.getMessage());
+					bool=true;
+				}
+	        }
+	        else if(da.get(Calendar.MINUTE)%5!=0)
+	        {
+	        	bool=true;
+	        }
+	        try {
+				Thread.sleep(5000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				ser.logfile(da,e.getMessage());				
+			}
+        }
+	}
+	public  mainServer()
+	{
+		
+		filedir=System.getProperty("user.dir")+File.separator+"strvermail.txt";		
+		System.out.println("filedir----->"+filedir);
+				
+		try {
+			outfile = new FileOutputStream(filedir,true);		
+			bout=new BufferedOutputStream(outfile);
+			dout=new DataOutputStream(bout);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}		
+	}
+	public void logfile(Calendar da,String str)
+	{
+		String writestr="";
+		try {	
+			SimpleDateFormat dft= new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			writestr=dft.format(da.getTime())+": "+str+"\r\n";
+			dout.writeUTF(writestr);
+			//dout.writeChars(writestr);
+			dout.flush();
+
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	FileOutputStream outfile;
+	BufferedOutputStream bout;
+	DataOutputStream dout;
+	String filedir;
+}
